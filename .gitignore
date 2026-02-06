@@ -1,0 +1,35 @@
+# Julia artifacts
+Manifest.toml
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+deps/build.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+out/
+out1/
+in1/
+examples/out/
+examples/out1/
+examples/loop_test/
+examples/interop_test/
+examples/demo_study/
+test/tmp/
+
+# Docs build
+docs/build/
+docs/site/
+
+# Coverage
+lcov.info
