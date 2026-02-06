@@ -1,0 +1,19 @@
+name = "Concore"
+uuid = "7b3e4c1a-9f82-4d5b-a6e3-8c2d1f0b4a7e"
+authors = ["Avinash Kumar Deepak"]
+version = "0.3.0"
+
+[deps]
+EzXML = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
+Mmap = "a63ad114-7e13-5084-954f-fe012c677804"
+
+[compat]
+julia = "1.8"
+EzXML = "1.1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+ZMQ = "c2297ded-f4af-51ae-bb23-16f91f88d81e"
+
+[targets]
+test = ["Test", "ZMQ"]
