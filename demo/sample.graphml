@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns
+           http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+
+  <!-- Key declarations for node/edge attributes -->
+  <key id="cmd"   for="node" attr.name="cmd"   attr.type="string"/>
+  <key id="init"  for="edge" attr.name="init"  attr.type="string"/>
+
+  <graph id="julia_demo" edgedefault="directed">
+
+    <!-- Controller node (bang-bang) -->
+    <node id="CZ">
+      <data key="cmd">julia --project=. demo/controller.jl</data>
+    </node>
+
+    <!-- Plant model node -->
+    <node id="PZ">
+      <data key="cmd">julia --project=. demo/pm.jl</data>
+    </node>
+
+    <!-- Edge CU: control signal from controller to plant -->
+    <edge id="CU" source="CZ" target="PZ">
+      <data key="init">[0.0, 0.0]</data>
+    </edge>
+
+    <!-- Edge PYM: measurement from plant to controller -->
+    <edge id="PYM" source="PZ" target="CZ">
+      <data key="init">[0.0, 0.0]</data>
+    </edge>
+
+  </graph>
+</graphml>
