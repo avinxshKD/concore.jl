@@ -9,6 +9,10 @@ A Julia implementation of the [concore](https://github.com/ControlCore-Project/c
 
 This is the **prototype / code challenge** for GSoC 2026 -- *"A Reference Implementation for concore Library in Julia"* under the [ControlCore-Project](https://github.com/ControlCore-Project) organization.
 
+<p align="center">
+  <img src="docs/assets/Animation.gif" alt="670 tests passing" width="720"/>
+</p>
+
 **Mentors:** Pradeeban Kathiravelu · Mayuresh Kothare · Rahul Jagwani
 
 ---
