@@ -1,7 +1,7 @@
 # Concore.jl
 
-[![CI](https://github.com/ControlCore-Project/concore/actions/workflows/CI.yml/badge.svg)](https://github.com/ControlCore-Project/concore/actions/workflows/CI.yml)
-[![codecov](https://codecov.io/gh/ControlCore-Project/concore/branch/main/graph/badge.svg)](https://codecov.io/gh/ControlCore-Project/concore)
+[![CI](https://github.com/avinxshKD/concore.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/avinxshKD/concore.jl/actions/workflows/CI.yml)
+[![codecov](https://codecov.io/gh/avinxshKD/concore.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/avinxshKD/concore.jl)
 ![Julia Version](https://img.shields.io/badge/julia-%E2%89%A5%201.8-blue)
 [![License: LGPL v2.1](https://img.shields.io/badge/License-LGPL_v2.1-blue.svg)](https://www.gnu.org/licenses/lgpl-2.1)
 ![Tests](https://img.shields.io/badge/tests-663%2B%20assertions-brightgreen)
