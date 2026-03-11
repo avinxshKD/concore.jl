@@ -7,7 +7,7 @@
 
 A Julia implementation of the [concore](https://github.com/ControlCore-Project/concore) file-based IPC protocol for closed-loop peripheral neuromodulation control systems.
 
-This is the **prototype / code challenge** for GSoC 2026 -- *"A Reference Implementation for concore Library in Julia"* under the [ControlCore-Project](https://github.com/ControlCore-Project) organization.
+This is the **prototype** for GSoC 2026 - *"A Reference Implementation for concore Library in Julia"* under the [ControlCore-Project](https://github.com/ControlCore-Project) organization.
 
 <p align="center">
   <img src="docs/assets/Animation.gif" alt="670 tests passing" width="720"/>
@@ -19,7 +19,7 @@ This is the **prototype / code challenge** for GSoC 2026 -- *"A Reference Implem
 
 ## What is concore?
 
-[CONTROL-CORE](https://github.com/ControlCore-Project/concore) is a lightweight framework for closed-loop peripheral neuromodulation control systems. It lets separate OS processes -- controllers, plant models, observers -- talk to each other through small text files. The wire format is simple:
+[CONTROL-CORE](https://github.com/ControlCore-Project/concore) is a lightweight framework for closed-loop peripheral neuromodulation control systems. It lets separate OS processes - controllers, plant models, observers talk to each other through small text files. The wire format is simple:
 
 ```
 [simtime, value1, value2, ...]
@@ -29,7 +29,7 @@ There are existing implementations in Python (`concore.py`), C++ (`concore.hpp`)
 
 ## Why Julia?
 
-Julia sits at a nice intersection for this project -- it has Python-like readability but compiles to fast native code, which matters for real-time control loops. The standard library already ships `Mmap` for shared memory and there's good ZMQ support. Plus, Julia's type dispatch makes it straightforward to build a pluggable backend system without the boilerplate you'd need in Python.
+Julia sits at a nice intersection for this project, it has Python-like readability but compiles to fast native code, which matters for real-time control loops. The standard library already ships `Mmap` for shared memory and there's good ZMQ support. Plus, Julia's type dispatch makes it straightforward to build a pluggable backend system without the boilerplate you'd need in Python.
 
 ## What this prototype covers
 
@@ -138,12 +138,12 @@ terminate_zmq()
 | `concore.write(port, name, val, delta)` | `concore.write(port, name, val, delta)` | `concore_write(port, name, val; delta)` |
 | `concore.initval(str)` | `concore.initval(str)` | `initval(str)` |
 | `concore.unchanged()` | `concore.unchanged()` | `unchanged()` |
-| `concore.tryparam(name, default)` | -- | `tryparam(name, default)` |
+| `concore.tryparam(name, default)` | - | `tryparam(name, default)` |
 | `concore.simtime` | `concore.simtime` | `Concore.simtime` |
 | `concore.delay` | `concore.delay` | `Concore.delay` |
-| -- | -- | `ConCoreContext(...)` *(Julia-only)* |
-| -- | -- | `shm_read` / `shm_write` *(Julia-only)* |
-| -- | -- | `zmq_read` / `zmq_write` *(Julia-only)* |
+| - | - | `ConCoreContext(...)` *(Julia-only)* |
+| - | - | `shm_read` / `shm_write` *(Julia-only)* |
+| - | - | `zmq_read` / `zmq_write` *(Julia-only)* |
 
 > `concore_read` / `concore_write` are prefixed to avoid shadowing Julia's `Base.read` / `Base.write`.
 
