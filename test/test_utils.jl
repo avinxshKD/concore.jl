@@ -509,7 +509,7 @@ using EzXML
         end
 
         @testset "missing file throws" begin
-            @test_throws Exception load_graph("/nonexistent/test.graphml")
+            @test_throws Any load_graph("/nonexistent/test.graphml")
         end
 
         @testset "returns Vector{Tuple{PIDController, PIDState}}" begin

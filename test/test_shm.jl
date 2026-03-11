@@ -1,3 +1,5 @@
+using Mmap
+
 @testset "Shared Memory Backend" begin
 
     # =========================================================================
@@ -264,12 +266,9 @@
                 # Temporarily work around paths
                 # shm_write on a FileBackend should fallback to concore_write
                 # It uses outdir(ctx, port) which is "./out{port}"
-                # We can't easily redirect paths in the context API, but we can
-                # verify the function doesn't error
-                @test_throws Exception shm_write(ctx, 999, "nodir_signal", [1.0])
-                # This should try to write to ./out999/nodir_signal and fail
-                # because concore_write creates the dir — let's just check it doesn't
-                # crash in a weird way
+                # concore_write creates the directory, so this should succeed
+                shm_write(ctx, 999, "nodir_signal", [1.0])
+                @test true  # didn't crash
             end
         end
 
@@ -299,7 +298,6 @@
                 filepath = joinpath(dir, "mmap_test")
                 io = Concore._get_or_create_segment(filepath, 4096)
 
-                using Mmap
                 buf = Mmap.mmap(io, Vector{UInt8}, 4096)
 
                 wire = "[3.0, 42.0, 3.14]"
@@ -328,7 +326,6 @@
                 filepath = joinpath(dir, "null_test")
                 io = Concore._get_or_create_segment(filepath, 256)
 
-                using Mmap
                 buf = Mmap.mmap(io, Vector{UInt8}, 256)
 
                 wire = "[1.0]"

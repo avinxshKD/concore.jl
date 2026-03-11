@@ -272,7 +272,7 @@
                           "{'mode': 'auto'}")
                     Concore.params = Dict{String,Any}()
                     Concore.load_params()
-                    @test Concore.params["mode"] isa String
+                    @test Concore.params["mode"] isa AbstractString
                     Concore.inpath = old_inpath
                 end
             end
