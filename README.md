@@ -2,89 +2,61 @@
 
 [![CI](https://github.com/avinxshKD/concore.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/avinxshKD/concore.jl/actions/workflows/CI.yml)
 [![codecov](https://codecov.io/gh/avinxshKD/concore.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/avinxshKD/concore.jl)
-![Julia Version](https://img.shields.io/badge/julia-%E2%89%A5%201.8-blue)
+![Julia ≥ 1.8](https://img.shields.io/badge/julia-%E2%89%A5%201.8-blue)
 [![License: LGPL v2.1](https://img.shields.io/badge/License-LGPL_v2.1-blue.svg)](https://www.gnu.org/licenses/lgpl-2.1)
-![Tests](https://img.shields.io/badge/tests-663%2B%20assertions-brightgreen)
-![Backends](https://img.shields.io/badge/backends-4%20(File%20%7C%20Docker%20%7C%20SHM%20%7C%20ZMQ)-informational)
 
-**A production-grade Julia implementation of the [concore](https://github.com/ControlCore-Project/concore) protocol for closed-loop peripheral neuromodulation control systems.**
+A Julia implementation of the [concore](https://github.com/ControlCore-Project/concore) file-based IPC protocol for closed-loop peripheral neuromodulation control systems.
 
-## Highlights
+This is the **prototype / code challenge** for GSoC 2026 -- *"A Reference Implementation for concore Library in Julia"* under the [ControlCore-Project](https://github.com/ControlCore-Project) organization.
 
-| | |
-|:---|:---|
-| **Zero-dependency core** | Regex-only parser -- no `eval`, no `Meta.parse`, no JSON library. Security-critical: concore reads files written by other processes. |
-| **4 pluggable backends** | `FileBackend` (default), `DockerBackend` (containerized), `SharedMemoryBackend` (Mmap, low-latency), `ZeroMQBackend` (network-distributed) |
-| **Dual API** | Module-global API for Python-compatible drop-in usage, plus a Julia-idiomatic `ConCoreContext` API for explicit, composable state management |
-| **663+ test assertions** | 11 test suites covering parser, config, protocol, sync, interop, Docker, SHM, ZMQ, utilities, context, and observability -- across Julia 1.8 / latest / nightly on Linux, macOS, and Windows |
-| **Thread-safe design** | Context-based API avoids global mutation; each `ConCoreContext` carries its own state |
-| **Observability-ready** | Built-in `MetricsCollector` for latency percentiles (p50/p95/p99), throughput, error rates, and data volume tracking -- zero-cost when disabled |
-| **Full interop** | Wire-format compatible with Python, C++, MATLAB, and Verilog concore implementations |
+**Mentors:** Pradeeban Kathiravelu · Mayuresh Kothare · Rahul Jagwani
 
-## Overview
+---
 
-The [CONTROL-CORE](https://github.com/ControlCore-Project/concore) (concore) framework enables closed-loop control simulations where separate OS processes -- controllers, plant models, observers -- communicate through a shared file-based IPC protocol. Implementations exist in Python (`concore.py`), C++ (`concore.hpp`), MATLAB (`import_concore.m`), and Verilog (`concore.v`).
+## What is concore?
 
-**Concore.jl** brings this protocol to Julia with an implementation that goes beyond a direct port: it introduces a pluggable backend system with four backends, shared memory IPC, Docker-native execution, ZeroMQ networking, and a context-based API while maintaining full wire-format compatibility with all existing concore implementations.
+[CONTROL-CORE](https://github.com/ControlCore-Project/concore) is a lightweight framework for closed-loop peripheral neuromodulation control systems. It lets separate OS processes -- controllers, plant models, observers -- talk to each other through small text files. The wire format is simple:
 
-This package is developed as a [GSoC 2026](https://summerofcode.withgoogle.com/) project for the [ControlCore-Project](https://github.com/ControlCore-Project) organization. The final deliverable is `concore.jl` + `concoredocker.jl` + `Dockerfile.jl` contributed to the [main concore repo](https://github.com/ControlCore-Project/concore) alongside Julia study examples.
+```
+[simtime, value1, value2, ...]
+```
 
-## Features
+There are existing implementations in Python (`concore.py`), C++ (`concore.hpp`), MATLAB (`import_concore.m`), and Verilog (`concore.v`). This project adds Julia to that list.
 
-- **Complete concore protocol implementation**
-  - `concore_read`, `concore_write`, `initval`, `unchanged` -- full sync loop
-  - Port configuration parsing (`concore.iport`, `concore.oport`)
-  - Runtime parameters (`concore.params`, `tryparam`)
-  - Simulation time management (`simtime`, `maxtime`, `default_maxtime!`)
+## Why Julia?
 
-- **Four communication backends**
-  - `FileBackend` -- standard file-based IPC (default, matches Python/C++)
-  - `DockerBackend` -- absolute-path I/O for containerized execution
-  - `SharedMemoryBackend` -- memory-mapped files via `Mmap.jl` for low-latency same-host communication
-  - `ZeroMQBackend` -- network-distributed studies via `ZMQ.jl` (PUSH/PULL sockets)
+Julia sits at a nice intersection for this project -- it has Python-like readability but compiles to fast native code, which matters for real-time control loops. The standard library already ships `Mmap` for shared memory and there's good ZMQ support. Plus, Julia's type dispatch makes it straightforward to build a pluggable backend system without the boilerplate you'd need in Python.
 
-- **Cross-language interoperability**
-  - Wire-format compatible with Python, C++, MATLAB, and Verilog implementations
-  - Handles Python artifacts: `np.float64(1.5)` → `1.5`, `True`/`False`/`None` → numeric
-  - Round-trip tested against Python concore output
+## What this prototype covers
 
-- **Safe parser (no `eval`, no `Meta.parse`, no JSON)**
-  - Regex-based extraction with explicit `Float64` conversion
-  - Zero external dependencies for core protocol parsing
-  - Critical security property: concore reads files written by other processes
+The goal was to prove feasibility: that a Julia node can participate in a mixed-language concore study alongside Python and C++ nodes, with full wire-format compatibility.
 
-- **Context-based AND module-global APIs**
-  - `ConCoreContext` for explicit, composable state management (Julia-idiomatic)
-  - Module-level globals for drop-in compatibility with the Python API pattern
-  - Both styles can be mixed freely
+Here's what's implemented:
 
-- **PID controller with anti-windup**
-  - Separated `PIDController` (immutable params) + `PIDState` (mutable runtime)
-  - Output clamping with integral freeze to prevent windup
-  - Backward-compatible `PIDNode` alias
+- **Core protocol** -- `concore_read`, `concore_write`, `initval`, `unchanged` (the full sync loop)
+- **Port config & params** -- parsing `concore.iport`, `concore.oport`, `concore.params`
+- **Safe parser** -- regex-based, no `eval()` or `Meta.parse()`. This matters because concore reads files written by other processes
+- **4 transport backends** -- `FileBackend` (default), `DockerBackend` (absolute paths for containers), `SharedMemoryBackend` (Mmap.jl), `ZeroMQBackend` (ZMQ.jl)
+- **Dual API** -- module-global API matching Python's `concore.simtime` pattern, plus a `ConCoreContext` API for explicit state management
+- **Docker support** -- `detect_environment()`, `init_docker!()`, Dockerfile with Julia 1.10
+- **PID controller** -- with anti-windup, separated into immutable params + mutable state
+- **GraphML parsing** -- for extracting controller params from study graph files
+- **Observability** -- `MetricsCollector` for latency/throughput tracking (zero-cost when disabled)
+- **663+ test assertions** across 11 test suites
+- **CI** -- GitHub Actions on Julia 1.8 / latest / nightly, Linux / macOS / Windows
+- **Documenter.jl docs** -- API reference, getting started guide, backend docs
 
-- **GraphML workflow parsing**
-  - Extract controller parameters from concore study graph files
-  - Uses `EzXML.jl` (isolated in optional `ConcoreUtils` submodule)
+### What still needs work (proposed for GSoC)
 
-- **Comprehensive test suite (663+ test assertions across 11 test suites)**
-  - Parser, config, protocol, sync, interop, Docker, SHM, ZMQ, context, utility, and observability tests
-  - Filesystem-based integration tests with temp directories
+The prototype is past feasibility. What remains is hardening, optimization, evidence packaging, and making the implementation easy for maintainers to evaluate and trust:
 
-- **CI across Julia 1.8, latest stable, and nightly on Linux/macOS/Windows**
-  - GitHub Actions with matrix strategy (8 platform combinations)
-  - Codecov coverage reporting
+- **SHM performance regression** -- the shared memory backend currently re-mmaps on every read/write. The segment registry infrastructure is there; the fix is to keep the mmap buffer alive across operations
+- **`concoredocker.jl` completion** -- the `DockerBackend` type and auto-detection work, but the full standalone `concoredocker.jl` needs to match `concoredocker.py`'s public interface exactly (same read/write/initval/unchanged surface with absolute paths)
+- **Demo nodes for mixed studies** -- `demo/controller_jl.jl` and `demo/pm_jl.jl` running in a Docker-orchestrated study with Python nodes
+- **Benchmark packaging** -- reproducible scripts with methodology docs, suitable for a research note
+- **Landing the code upstream** -- PRs to the [main concore repo](https://github.com/ControlCore-Project/concore) dev branch
 
-- **Full Documenter.jl API documentation**
-  - 6-page doc site: guide, API reference, backends, interop, contributing
-  - Auto-deployed via CI
-
-- **Docker support for containerized studies**
-  - `Dockerfile` with Julia 1.10 base image
-  - `detect_environment()` auto-switches between local and Docker backends
-  - Bind-mount compatible with concore orchestrator conventions
-
-## Installation
+## Quick start
 
 ```julia
 using Pkg
@@ -92,52 +64,30 @@ Pkg.activate(".")
 Pkg.instantiate()
 ```
 
-Or add directly from the repository:
+### Controller loop (module-global API)
 
-```julia
-using Pkg
-Pkg.add(url="https://github.com/ControlCore-Project/concore", subdir="concore-jl")
-```
-
-### Dependencies
-
-| Component | Dependencies |
-|:----------|:-------------|
-| Core protocol (`Concore`) | `Mmap` (stdlib only) -- **zero external deps** |
-| ZeroMQ backend | `ZMQ.jl` (optional, loaded on demand) |
-| Utilities (`ConcoreUtils`) | `EzXML.jl` (GraphML parsing) |
-
-## Quick Start
-
-### Module-global API (Python-compatible)
+This matches the Python concore pattern 1:1:
 
 ```julia
 using Concore
 
-# Configure polling interval
 Concore.delay = 0.01
 
-# Controller loop -- the canonical concore pattern
 u = initval("[0.0, 0.0]")
 
 while Concore.simtime < Concore.maxtime
-    # Wait for fresh data from the plant
     while unchanged()
         ym = concore_read(1, "ym", "[0.0, 0.0]")
     end
 
-    # Controller logic
     error_val = 100.0 - ym[1]
     u = [2.0 * error_val]
 
-    # Write control signal (delta=0: controller doesn't advance simtime)
     concore_write(1, "u", u; delta=0)
 end
 ```
 
-> **Delta convention**: Controllers write with `delta=0` (don't advance simtime). Plant models write with `delta=1` (advance simtime by 1). This matches `demo/controller.py` and `demo/pm.py` in the concore repo.
-
-### Context-based API (recommended for new code)
+### Context-based API (recommended for new Julia code)
 
 ```julia
 using Concore
@@ -154,22 +104,20 @@ while ctx.simtime < ctx.maxtime
 end
 ```
 
-### Shared Memory (low-latency)
+> **Delta convention:** Controllers use `delta=0` (don't advance simtime). Plant models use `delta=1` (advance by 1 tick). Same as `demo/controller.py` and `demo/pm.py` upstream.
+
+### Shared memory backend
 
 ```julia
-using Concore
-
 ctx = ConCoreContext(backend=SharedMemoryBackend(8192), delay=0.001)
 data = shm_read(ctx, 1, "ym", "[0.0, 0.0]")
 shm_write(ctx, 1, "u", [42.0]; delta=0)
 shm_cleanup()
 ```
 
-### ZeroMQ (network-distributed)
+### ZeroMQ backend
 
 ```julia
-using Concore
-
 ctx = ConCoreContext(backend=ZeroMQBackend())
 init_zmq_port("plant_out", :bind, "tcp://*:5555"; socket_type=:PUSH)
 init_zmq_port("ctrl_in",  :connect, "tcp://localhost:5555"; socket_type=:PULL)
@@ -178,9 +126,7 @@ result = zmq_read("ctrl_in", "ym", "[0.0, 0.0]")
 terminate_zmq()
 ```
 
-## API Mapping
-
-The Julia API matches the canonical concore surface across all supported languages:
+## API mapping (Julia <-> Python <-> C++)
 
 | Python (`concore.py`) | C++ (`concore.hpp`) | Julia (`Concore.jl`) |
 |:---|:---|:---|
@@ -189,460 +135,150 @@ The Julia API matches the canonical concore surface across all supported languag
 | `concore.initval(str)` | `concore.initval(str)` | `initval(str)` |
 | `concore.unchanged()` | `concore.unchanged()` | `unchanged()` |
 | `concore.tryparam(name, default)` | -- | `tryparam(name, default)` |
-| `concore.default_maxtime(default)` | -- | `default_maxtime!(default)` |
 | `concore.simtime` | `concore.simtime` | `Concore.simtime` |
 | `concore.delay` | `concore.delay` | `Concore.delay` |
-| `concore.iport` / `concore.oport` | `concore.iport` / `concore.oport` | `Concore.iport` / `Concore.oport` |
-| -- | -- | `ConCoreContext(...)` |
-| -- | -- | `detect_environment()` |
-| -- | -- | `shm_read(ctx, ...)` / `shm_write(ctx, ...)` |
-| -- | -- | `init_zmq_port(...)` / `zmq_read(...)` / `zmq_write(...)` |
+| -- | -- | `ConCoreContext(...)` *(Julia-only)* |
+| -- | -- | `shm_read` / `shm_write` *(Julia-only)* |
+| -- | -- | `zmq_read` / `zmq_write` *(Julia-only)* |
 
-> `concore_read`/`concore_write` are prefixed to avoid shadowing Julia's `Base.read`/`Base.write`. The behavior is identical to other implementations.
+> `concore_read` / `concore_write` are prefixed to avoid shadowing Julia's `Base.read` / `Base.write`.
 
-## Comparison with Python concore
+## Wire format compatibility
 
-| Feature | Python (`concore.py`) | Julia (`Concore.jl`) |
-|:--------|:---------------------:|:--------------------:|
-| Core protocol (read/write/sync) | Yes | Yes |
-| File-based IPC | Yes | Yes |
-| Docker backend | Yes | Yes |
-| Shared memory backend | -- | Yes (`Mmap.jl`) |
-| ZeroMQ backend | -- | Yes (`ZMQ.jl`) |
-| Pluggable backend system | -- | Yes (type dispatch) |
-| Context-based API | -- | Yes (`ConCoreContext`) |
-| Safe parser (no eval) | `eval()` / `json.loads()` | Regex-only |
-| External dependencies (core) | stdlib | stdlib only |
-| PID controller + anti-windup | -- | Yes (`ConcoreUtils`) |
-| GraphML parsing | -- | Yes (`ConcoreUtils`) |
-| Observability / metrics | -- | Yes (`MetricsCollector`) |
-| Standalone single-file | Yes | Yes (`standalone/`) |
-| Docker single-file | Yes | Yes (`concoredocker.jl`) |
-| Cross-language interop | Baseline | Verified round-trip |
-| Benchmark suite | -- | Yes (parser, I/O, loop) |
-| API documentation site | ReadTheDocs | Documenter.jl |
-| Test assertions | ~50 | 663+ across 11 suites |
-| CI platforms | Linux | Linux, macOS, Windows |
+The parser handles everything the Python and C++ implementations produce, including numpy wrappers:
 
-## Architecture
-
-```
-concore-jl/
-├── .github/
-│   └── workflows/
-│       └── CI.yml                  # GitHub Actions: test matrix + docs deploy
-├── benchmark/
-│   ├── bench_parser.jl             # Parser benchmarks
-│   ├── bench_io.jl                 # File I/O benchmarks
-│   ├── bench_loop.jl               # Control loop benchmarks
-│   ├── bench_shm.jl                # Shared memory backend benchmarks
-│   ├── bench_memory.jl             # Memory allocation analysis
-│   ├── bench_latency.jl            # Latency distribution (p50/p95/p99/p999)
-│   ├── bench_multiprocess.jl       # Multi-process IPC benchmarks
-│   ├── bench_python_compare.py     # Python baseline for comparison
-│   ├── run_benchmarks.jl           # Main benchmark runner (all categories)
-│   └── README.md
-├── demo/
-│   ├── controller.jl               # Standalone Julia controller node
-│   ├── pm.jl                       # Standalone Julia plant model node
-│   ├── run_demo.jl                 # Multi-process orchestrator
-│   ├── plotym.jl                   # Plot output visualization
-│   ├── sample.graphml              # Example study graph
-│   ├── cross_language/             # Julia + Python interop demo
-│   │   ├── controller.jl
-│   │   ├── pm.py
-│   │   ├── concore.py
-│   │   ├── run_cross_language.sh
-│   │   └── README.md
-│   └── video/                      # Video demo infrastructure
-│       ├── repl_demo.jl
-│       ├── run_all_demos.sh
-│       ├── demo_script.md
-│       └── README.md
-├── docs/
-│   ├── Project.toml                # Documenter.jl dependencies
-│   ├── make.jl                     # Doc build script
-│   └── src/
-│       ├── index.md                # Landing page
-│       ├── guide.md                # Getting started guide
-│       ├── api.md                  # Full API reference
-│       ├── backends.md             # Backend system documentation
-│       ├── interop.md              # Cross-language interop guide
-│       └── contributing.md         # Contributor guide
-├── examples/
-│   ├── basic_example.jl            # Parser, initval, file I/O tests
-│   ├── concore_loop_example.jl     # PID controller + simulated plant
-│   ├── cross_language_test.jl      # Wire format interop proof
-│   ├── python_interop_demo.jl      # Julia ↔ Python file exchange
-│   └── sample_graph.graphml        # Example GraphML study file
-├── src/
-│   ├── Concore.jl                  # Main module: exports, globals, init
-│   ├── types.jl                    # AbstractBackend hierarchy, ConCoreContext
-│   ├── parser.jl                   # safe_parse_list (regex, no eval)
-│   ├── config.jl                   # Port/param/maxtime loading
-│   ├── protocol.jl                 # concore_read, concore_write, unchanged, initval
-│   ├── docker.jl                   # DockerBackend, detect_environment, init_docker!
-│   ├── shm.jl                      # SharedMemoryBackend, shm_read, shm_write, Mmap
-│   ├── zmq.jl                      # ZeroMQBackend, init_zmq_port, zmq_read, zmq_write
-│   ├── observability.jl            # MetricsCollector, latency/throughput tracking
-│   └── ConcoreUtils.jl             # PIDController, PIDState, GraphML parsing
-├── standalone/
-│   ├── concore.jl                  # Standalone single-file Concore (local paths)
-│   └── concoredocker.jl            # Standalone single-file Concore (Docker paths)
-├── test/
-│   ├── runtests.jl                 # Test runner (11 test suites)
-│   ├── test_parser.jl              # Parser tests (formats, edge cases, security)
-│   ├── test_config.jl              # Port/param loading tests
-│   ├── test_protocol.jl            # Read/write/format tests
-│   ├── test_sync.jl                # Sync detection (unchanged/initval) tests
-│   ├── test_interop.jl             # Cross-language wire format tests
-│   ├── test_docker.jl              # Docker backend tests
-│   ├── test_shm.jl                 # Shared memory backend tests
-│   ├── test_zmq.jl                 # ZeroMQ backend tests
-│   ├── test_context.jl             # ConCoreContext API tests
-│   ├── test_utils.jl               # PID controller + GraphML tests
-│   ├── test_observability.jl       # Metrics collector, latency stats, export tests
-│   └── integration/
-│       ├── test_full_pipeline.jl   # End-to-end pipeline integration test
-│       └── test_wire_compat.jl     # Wire format compatibility test
-├── .gitignore
-├── .JuliaFormatter.toml            # Code formatting configuration
-├── CHANGELOG.md
-├── CONTRIBUTING.md
-├── Dockerfile                      # Julia 1.10 container for concore studies
-├── LICENSE                         # LGPL-2.1
-├── Project.toml                    # Package manifest (v0.3.0)
-└── README.md
-```
-
-## Backends
-
-Concore.jl uses a pluggable backend system built on Julia's type dispatch. All backends implement the same path conventions and wire format, ensuring any combination of backends can interoperate within a study.
-
-```
-AbstractBackend
-├── FileBackend           # File I/O with relative paths (default)
-├── DockerBackend         # File I/O with absolute paths (/in1/, /out1/)
-├── SharedMemoryBackend   # Memory-mapped files via Mmap.jl
-└── ZeroMQBackend         # Network sockets via ZMQ.jl
-```
-
-### FileBackend (default)
-
-Standard file-based IPC. Reads from `./in{port}/{name}`, writes to `./out{port}/{name}`. Compatible with all existing concore implementations.
-
-```julia
-using Concore
-
-# FileBackend is the default -- no configuration needed
-ctx = ConCoreContext(delay=0.01)
-ym = concore_read(ctx, 1, "ym", "[0.0, 0.0]")
-```
-
-### DockerBackend
-
-Uses absolute paths (`/in{port}/`, `/out{port}/`) for Docker bind-mount volumes. Auto-detected or explicitly initialized.
-
-```julia
-using Concore
-
-# Auto-detect: returns DockerBackend if /in1/ exists, FileBackend otherwise
-backend = detect_environment()
-ctx = ConCoreContext(backend=backend, delay=0.01)
-
-# Or explicitly switch to Docker mode
-ctx = ConCoreContext()
-init_docker!(ctx)
-```
-
-### SharedMemoryBackend
-
-Memory-mapped files via `Mmap.jl` for low-latency same-host communication. Uses the same directory layout as `FileBackend`, so other processes can still read/write with plain file I/O.
-
-```julia
-using Concore
-
-ctx = ConCoreContext(backend=SharedMemoryBackend(8192), delay=0.001)
-
-# Use shm_read/shm_write for mmap-backed I/O
-data = shm_read(ctx, 1, "ym", "[0.0, 0.0]")
-shm_write(ctx, 1, "u", [42.0]; delta=0)
-
-# Clean up mmap handles when done
-shm_cleanup()
-```
-
-### ZeroMQBackend
-
-Network-distributed communication via `ZMQ.jl` PUSH/PULL sockets. Enables multi-host concore studies.
-
-```julia
-using Concore
-
-ctx = ConCoreContext(backend=ZeroMQBackend())
-
-# Initialize ports with explicit socket types
-init_zmq_port("plant_out", :bind,    "tcp://*:5555"; socket_type=:PUSH)
-init_zmq_port("ctrl_in",  :connect,  "tcp://localhost:5555"; socket_type=:PULL)
-
-# Read/write over ZeroMQ
-zmq_write("plant_out", "ym", [42.0, 3.14])
-result = zmq_read("ctrl_in", "ym", "[0.0, 0.0]")
-
-# Clean up
-terminate_zmq()
-```
-
-## Wire Format
-
-All concore implementations exchange data as text files containing Python-style lists:
-
-```
-[simtime, value1, value2, ...]
-```
-
-**Examples:**
-
-| Wire string | Meaning |
+| Input | Parsed |
 |:---|:---|
-| `[5.0, 42.0, 3.14]` | simtime=5.0, data=[42.0, 3.14] |
-| `[0.0, 1.0]` | simtime=0.0, data=[1.0] |
-
-**Julia's safe parser also handles Python artifacts:**
-
-| Input | Parsed output |
-|:---|:---|
+| `[1.0, 2.0, 3.0]` | `[1.0, 2.0, 3.0]` |
 | `[np.float64(1.5), numpy.int32(2)]` | `[1.5, 2.0]` |
 | `[np.array([1.0, 2.0])]` | `[1.0, 2.0]` |
 | `[True, False, None]` | `[1.0, 0.0, 0.0]` |
 
-Integer-valued floats are formatted with a `.0` suffix (e.g., `42.0` not `42`) to match Python's output exactly.
+Output uses `.0` suffix for integer-valued floats (`42.0` not `42`) to match Python's format byte-for-byte.
 
-## Performance
-
-The benchmark suite measures end-to-end performance across all critical code paths. Run benchmarks with:
-
-```bash
-julia benchmark/run_benchmarks.jl              # Julia only
-julia benchmark/run_benchmarks.jl --with-python # Julia + Python comparison
-```
-
-### Benchmark Categories
-
-| Category | What's Measured | Key Metrics |
-|:---------|:----------------|:------------|
-| **Parser** | `safe_parse_list` for small/medium/large inputs, numpy wrappers, `_format_wire` | Median latency (μs), throughput (ops/s) |
-| **File I/O** | Single write+read cycle, 100-cycle loop, raw throughput | Latency (μs), ops/s |
-| **Control Loop** | 1000-iteration controller + plant with file IPC | Per-iteration latency, loop rate (iter/s) |
-| **Shared Memory** | `shm_read`/`shm_write` round-trip, SHM vs File comparison | Latency (μs), throughput, speedup vs File |
-| **Memory** | Heap allocations per parse/format/read/write via `@allocated` | Bytes/op, zero-alloc detection |
-| **Latency Distribution** | 50K-sample distributions with percentile analysis, GC impact | p50, p95, p99, p99.9, jitter (stddev) |
-| **Multi-Process** | Real 2-process controller+plant via file IPC, end-to-end latency | Round-trip latency, IPC overhead ratio |
-| **Python Comparison** | Equivalent benchmarks in Python for direct comparison | Speedup ratio (Nx) |
-
-### Sample Results Format
-
-Results are auto-generated by `benchmark/run_benchmarks.jl` and saved to `benchmark/results.md`:
+## Backend system
 
 ```
-Parser Benchmarks (median, μs)
-┌─────────────────────────┬────────┬────────┬─────────┐
-│ Benchmark               │  Julia │ Python │ Speedup │
-├─────────────────────────┼────────┼────────┼─────────┤
-│ Parse small (2 elem)    │  XX.Xμs│  XX.Xμs│   X.Xx  │
-│ Parse medium (10 elem)  │  XX.Xμs│  XX.Xμs│   X.Xx  │
-│ Parse large (101 elem)  │  XX.Xμs│  XX.Xμs│   X.Xx  │
-│ Parse numpy wrappers    │  XX.Xμs│  XX.Xμs│   X.Xx  │
-└─────────────────────────┴────────┴────────┴─────────┘
-
-I/O Benchmarks
-┌─────────────────────────┬────────┬────────┬─────────┐
-│ Single write+read (μs)  │  XX.Xμs│  XX.Xμs│   X.Xx  │
-│ Write throughput (ops/s) │  XXXXX │  XXXXX │   X.Xx  │
-│ Read+parse (ops/s)      │  XXXXX │  XXXXX │   X.Xx  │
-└─────────────────────────┴────────┴────────┴─────────┘
-
-Control Loop (1000 iterations)
-┌─────────────────────────┬────────┬────────┬─────────┐
-│ Total loop time (ms)    │  XX.Xms│  XX.Xms│   X.Xx  │
-│ Per iteration (μs)      │  XX.Xμs│  XX.Xμs│   X.Xx  │
-│ Loop rate (iter/s)      │  XXXXX │  XXXXX │   X.Xx  │
-└─────────────────────────┴────────┴────────┴─────────┘
+AbstractBackend
+├── FileBackend           # relative paths ./in1/, ./out1/ (default)
+├── DockerBackend         # absolute paths /in1/, /out1/ (containers)
+├── SharedMemoryBackend   # memory-mapped files via Mmap.jl
+└── ZeroMQBackend         # network sockets via ZMQ.jl
 ```
 
-> Run `julia benchmark/run_benchmarks.jl --with-python` to generate actual numbers. See [`benchmark/README.md`](benchmark/README.md) for methodology details.
+All backends share the same wire format, so you can mix them in a study -- e.g., a Julia node using `SharedMemoryBackend` can still talk to a Python node doing plain file I/O.
 
-## Examples
+## Project structure
 
-### Basic API Test
+```
+src/
+├── Concore.jl          # module entry point, globals, exports
+├── types.jl            # AbstractBackend hierarchy, ConCoreContext
+├── parser.jl           # safe_parse_list (regex, no eval)
+├── config.jl           # port/param/maxtime loading
+├── protocol.jl         # concore_read, concore_write, unchanged, initval
+├── docker.jl           # DockerBackend, detect_environment()
+├── shm.jl              # SharedMemoryBackend via Mmap.jl
+├── zmq.jl              # ZeroMQBackend via ZMQ.jl (optional dep)
+├── observability.jl    # MetricsCollector for profiling
+└── ConcoreUtils.jl     # PID controller, GraphML parsing
 
-```bash
-julia --project=. examples/basic_example.jl
+test/                   # 11 test suites, 663+ assertions
+benchmark/              # 7 categories: parser, I/O, loop, SHM, memory, latency, multiprocess
+demo/                   # standalone nodes, cross-language demo (Julia + Python)
+docs/                   # Documenter.jl site
+standalone/             # single-file distributions (concore.jl, concoredocker.jl)
 ```
 
-Tests the safe parser, `initval`, file I/O round-trips, and the sync pattern.
+## Dependencies
 
-### Control Loop
-
-```bash
-julia --project=. examples/concore_loop_example.jl
-```
-
-Full concore-style loop with a PID controller (kp=2.0, ki=0.5, kd=0.1) and a simulated first-order plant. Demonstrates the canonical concore sync pattern in a single process.
-
-### Cross-Language Interoperability Test
-
-```bash
-julia --project=. examples/cross_language_test.jl
-```
-
-**The key demo.** Proves that Julia produces and consumes the exact same wire format as Python concore. Tests: parsing, round-trip I/O, numpy annotation handling, port config, params, sync detection.
-
-### Python Interop Demo
-
-```bash
-julia --project=. examples/python_interop_demo.jl
-```
-
-End-to-end simulation of a Julia controller node reading Python-written measurement files, computing control output, and writing Python-compatible results. Creates a realistic concore study directory structure.
-
-## Demos
-
-| Demo | Description |
+| Component | Deps |
 |:---|:---|
-| `demo/controller.jl`, `demo/pm.jl` | Standalone Julia control loop nodes (controller + plant model) |
-| `demo/run_demo.jl` | Multi-process orchestrator that launches controller and plant as separate Julia processes |
-| `demo/cross_language/` | Julia controller + Python plant model interop demo (cross-language closed-loop) |
-| `demo/video/` | Video demo infrastructure (REPL demo script, shell runner) |
+| Core protocol | `Mmap` (stdlib) -- **zero external deps** |
+| ZMQ backend | `ZMQ.jl` (optional, loaded on demand) |
+| Utils (PID, GraphML) | `EzXML.jl` |
 
-## Benchmarks
-
-| File | Description |
-|:---|:---|
-| `benchmark/run_benchmarks.jl` | Main benchmark runner (all 7 categories + Python comparison) |
-| `benchmark/bench_parser.jl` | Wire-format parser throughput (small/medium/large/numpy) |
-| `benchmark/bench_io.jl` | File I/O read/write latency and throughput (ops/s) |
-| `benchmark/bench_loop.jl` | Full control loop iteration time (1000-iteration PID loop) |
-| `benchmark/bench_shm.jl` | Shared memory backend vs File backend comparison |
-| `benchmark/bench_memory.jl` | Heap allocation analysis per operation (`@allocated`) |
-| `benchmark/bench_latency.jl` | 50K-sample latency distributions with p50/p95/p99/p999 + GC impact |
-| `benchmark/bench_multiprocess.jl` | Real multi-process controller + plant IPC latency |
-| `benchmark/bench_python_compare.py` | Python baseline for direct performance comparison |
-
-Methodology: zero external dependencies (`@elapsed` / `@allocated`, not BenchmarkTools.jl), JIT warmup, large sample sizes (10K-50K), percentile analysis (p50/p95/p99/p999), jitter measurement, GC impact analysis, temp directories for I/O isolation. See [`benchmark/README.md`](benchmark/README.md).
-
-## Design Decisions
-
-| Decision | Reasoning |
-|:---|:---|
-| Core has zero external deps | `concore.py` only needs stdlib too. Minimizes friction for adoption. |
-| No `eval(Meta.parse())` | Security: concore reads files from other processes. Regex parser only. |
-| No JSON dependency | Parsing is regex-based; no `JSON.jl` needed. Fewer deps, smaller attack surface. |
-| PID/GraphML in submodule | concore is a communication protocol, not a control library. Separation of concerns. |
-| Module-level globals for state | Matches Python/C++ exactly. Easy to read for cross-language contributors. |
-| `ConCoreContext` alongside globals | Julia-idiomatic: explicit state, composable, testable, no global mutation. |
-| `concore_read`/`concore_write` naming | Julia convention to avoid shadowing `Base.read`/`Base.write`. |
-| `Mmap.jl` for shared memory | Julia stdlib; no POSIX `shm_open` bindings needed. Same paths as file backend. |
-| ZMQ via optional loading | `ZMQ.jl` is a test extra; core protocol works without it. |
-| `_format_wire` with `.0` suffix | Byte-identical output to Python. Required for cross-language round-trip. |
-| Sync string capped at 64KB | Prevents unbounded memory growth in long-running simulations. |
-| Backend as type hierarchy | Clean dispatch, easy to extend, zero overhead at runtime. |
-
-## GSoC 2026 Roadmap
-
-### Phase 1 -- Core Protocol (Complete)
-
-- [x] Core protocol: `read`, `write`, `initval`, `unchanged`
-- [x] Port config parsing (`concore.iport` / `concore.oport`)
-- [x] Params parsing (`concore.params` / `tryparam`)
-- [x] Safe parser (no eval, handles numpy annotations)
-- [x] Cross-language interop test
-- [x] PID node + GraphML parsing (utility module)
-
-### Phase 2 -- Backend System & Infrastructure (Complete)
-
-- [x] `AbstractBackend` type hierarchy
-- [x] `ConCoreContext` for explicit state management
-- [x] `FileBackend` (default)
-- [x] `DockerBackend` with `detect_environment()` and `init_docker!`
-- [x] `SharedMemoryBackend` via `Mmap.jl`
-- [x] `ZeroMQBackend` via `ZMQ.jl` (PUSH/PULL sockets)
-- [x] `Dockerfile` for containerized Julia nodes
-- [x] Comprehensive test suite (663+ assertions across 11 test suites)
-- [x] GitHub Actions CI (Julia 1.8/latest/nightly, Linux/macOS/Windows)
-- [x] Codecov integration
-- [x] Documenter.jl documentation (6-page site)
-- [x] CONTRIBUTING.md with style guide and backend extension guide
-- [x] JuliaFormatter configuration
-
-### Phase 3 -- Integration & Deployment (Complete)
-
-- [x] Julia node in a full concore study (`demo/` directory)
-- [x] ZeroMQ backend (`ZMQ.jl`) for network-distributed studies
-- [x] Performance benchmarks vs. Python and C++ implementations
-- [x] Cross-language demo (Julia controller + Python plant model)
-- [x] Standalone single-file distributions (`standalone/`)
-- [x] Observability module (MetricsCollector, latency percentiles, throughput tracking, export)
-- [ ] Package registration in Julia General registry
-
-## Testing
-
-### Run the full test suite
+## Running tests
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-### Run tests directly
+Test breakdown:
+
+| Suite | Assertions | What it covers |
+|:---|---:|:---|
+| `test_parser.jl` | 140 | wire format parsing, numpy, edge cases |
+| `test_config.jl` | 79 | port files, param loading, maxtime |
+| `test_protocol.jl` | 85 | read/write round-trips, formatting |
+| `test_sync.jl` | 46 | unchanged() detection, initval |
+| `test_interop.jl` | 88 | cross-language wire compat |
+| `test_docker.jl` | 80 | Docker paths, detect_environment |
+| `test_shm.jl` | 63 | shared memory read/write, cleanup |
+| `test_zmq.jl` | 66 | ZeroMQ PUSH/PULL round-trip |
+| `test_context.jl` | 155 | ConCoreContext API, state isolation |
+| `test_utils.jl` | 165 | PID controller, anti-windup, GraphML |
+| `test_observability.jl` | 136 | metrics, latency stats, export |
+
+Integration tests in `test/integration/` cover end-to-end pipeline and wire format verification.
+
+## Running benchmarks
 
 ```bash
-julia --project=. test/runtests.jl
+julia benchmark/run_benchmarks.jl                # Julia only
+julia benchmark/run_benchmarks.jl --with-python   # Julia vs Python comparison
 ```
 
-### Test structure
+Seven categories: parser throughput, file I/O latency, control loop timing, SHM vs file comparison, memory allocations, latency distributions (p50/p95/p99/p999), and multi-process IPC overhead. See [benchmark/README.md](benchmark/README.md) for methodology.
 
-| File | Assertions | Coverage |
-|:---|:---|:---|
-| `test_parser.jl` | 140 | Wire format parsing, numpy handling, edge cases, error paths |
-| `test_config.jl` | 79 | Port file parsing, param loading, maxtime |
-| `test_protocol.jl` | 85 | Read/write round-trips, wire formatting, path construction |
-| `test_sync.jl` | 46 | `unchanged()` detection, `initval`, context sync |
-| `test_interop.jl` | 88 | Cross-language wire format compatibility |
-| `test_docker.jl` | 80 | Docker backend paths, detect_environment, init_docker! |
-| `test_shm.jl` | 63 | Shared memory read/write, segment management, cleanup |
-| `test_zmq.jl` | 66 | ZeroMQ backend, port registry, PUSH/PULL round-trip |
-| `test_context.jl` | 155 | ConCoreContext API, state isolation, backend switching |
-| `test_utils.jl` | 165 | PID controller, anti-windup, GraphML parsing, reset |
-| `test_observability.jl` | 136 | MetricsCollector, latency stats, export, enable/disable, formatting |
-| **Total** | **663+** | **Full coverage of all source modules** |
-
-> Integration tests (`test/integration/`) provide additional end-to-end pipeline and wire compatibility verification.
-
-## Documentation
-
-### Build locally
+## Building docs
 
 ```bash
 julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
 julia --project=docs/ docs/make.jl
 ```
 
-The generated site will be in `docs/build/`. Open `docs/build/index.html` in a browser.
+Opens at `docs/build/index.html`. Pages: getting started, API reference, backend details, cross-language interop, contributing.
 
-### Doc pages
+## Design choices
 
-| Page | Content |
-|:---|:---|
-| Home (`index.md`) | Overview, quick start |
-| Getting Started (`guide.md`) | Installation, first controller loop |
-| API Reference (`api.md`) | All exported functions and types |
-| Backends (`backends.md`) | File, Docker, SharedMemory, ZeroMQ backend details |
-| Cross-Language Interop (`interop.md`) | Wire format spec, Python/C++ compatibility |
-| Contributing (`contributing.md`) | Dev setup, style guide, PR process |
+- **No `eval` in the parser.** concore reads files written by other processes. Using `eval(Meta.parse(...))` on untrusted input is a security hole. The parser is pure regex + `tryparse(Float64, ...)`.
+- **Module globals match Python exactly.** `Concore.simtime`, `Concore.delay`, `Concore.iport` -- makes it trivial to transliterate Python concore examples into Julia.
+- **`ConCoreContext` exists alongside globals.** Globals are for compat; new Julia code should use the context API. Explicit, composable, no global mutation.
+- **`Mmap.jl` for shared memory.** Julia stdlib, no POSIX `shm_open` bindings needed. Writes to the same paths as `FileBackend`, so other processes can still do plain file I/O.
+- **ZMQ is optional.** Only loaded if you use `ZeroMQBackend`. Core protocol has zero external deps.
+- **Sync string capped at 64 KB.** Without this, `s` grows forever in long simulations. The Python implementation has this bug -- fixed here.
 
-## Contributing
+## Benchmarks: Julia vs Python
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, testing instructions, architecture overview, and the pull request process.
+Measured on AMD Ryzen 7 7435HS (16 threads), Julia 1.10.10, Linux x86_64. The Python comparison script (`bench_python_compare.py`, 559 lines) implements identical algorithms with identical inputs and iteration counts.
+
+### Parse & format hot paths
+
+| Benchmark | Julia | Python | Speedup |
+|:---|:---|:---|:---|
+| Parse small (2 elem) | 1.09 us | 4.05 us | **3.7x** |
+| Parse medium (10 elem) | 2.51 us | 6.93 us | **2.8x** |
+| Parse large (101 elem) | 18.0 us | 41.67 us | **2.3x** |
+| Format small (2 elem) | 0.15 us | 0.60 us | **4.0x** |
+| Format medium (10 elem) | 0.65 us | 1.99 us | **3.1x** |
+| Format large (101 elem) | 7.0 us | 18.07 us | **2.6x** |
+
+### End-to-end throughput
+
+| Benchmark | Julia | Python | Speedup |
+|:---|:---|:---|:---|
+| Write throughput (ops/s) | 28,400 | 16,900 | **1.7x** |
+| Read+parse throughput (ops/s) | 102,000 | 41,200 | **2.5x** |
+| Control loop (1k iter) | 3,800 iter/s | 1,520 iter/s | **2.5x** |
+
+Julia is 2-4x faster on every hot path. The parser gap narrows for larger inputs (regex overhead scales similarly), but the format path stays consistently faster because `IOBuffer` + direct float printing avoids Python's string concatenation overhead.
+
+Full benchmark suite: `julia benchmark/run_benchmarks.jl --with-python`. Methodology in [benchmark/README.md](benchmark/README.md).
+
+## What's next
+
+This prototype proves Julia can participate in concore studies with full wire-format compatibility. The remaining work for GSoC -- hardening the SHM backend, completing `concoredocker.jl`, landing demo nodes in a mixed Docker study, and packaging the benchmarks into a research note -- is scoped in the proposal.
 
 ## References
 
@@ -653,4 +289,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, testin
 
 ## License
 
-LGPL-2.1 (following [concore project licensing](https://github.com/ControlCore-Project/concore/blob/main/LICENSE))
+LGPL-2.1 -- following the [concore project licensing](https://github.com/ControlCore-Project/concore/blob/main/LICENSE).
