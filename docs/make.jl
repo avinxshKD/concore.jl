@@ -4,7 +4,7 @@ using Concore
 makedocs(;
     modules=[Concore],
     authors="Avinash Kumar Deepak",
-    repo="https://github.com/ControlCore-Project/concore",
+    repo="https://github.com/avinxshKD/concore.jl",
     sitename="Concore.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
@@ -23,6 +23,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/ControlCore-Project/concore",
+    repo="github.com/avinxshKD/concore.jl",
     devbranch="main",
 )

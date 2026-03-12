@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/avinxshKD/concore.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/avinxshKD/concore.jl/actions/workflows/CI.yml)
 [![codecov](https://codecov.io/gh/avinxshKD/concore.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/avinxshKD/concore.jl)
-![Julia ≥ 1.8](https://img.shields.io/badge/julia-%E2%89%A5%201.8-blue)
+![Julia ≥ 1.10](https://img.shields.io/badge/julia-%E2%89%A5%201.10-blue)
 [![License: LGPL v2.1](https://img.shields.io/badge/License-LGPL_v2.1-blue.svg)](https://www.gnu.org/licenses/lgpl-2.1)
 
 A Julia implementation of the [concore](https://github.com/ControlCore-Project/concore) file-based IPC protocol for closed-loop peripheral neuromodulation control systems.
